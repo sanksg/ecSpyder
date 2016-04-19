@@ -26,7 +26,7 @@ def setup_session():
 
   s.get(conf.baseUrl)
   #print("Session Headers: ", s.headers)
-  s.get(conf.rollsearchUrl)
+  s.get(conf.rollSearchUrl)
   #print("Session Headers: ", s.headers)
   #req = Request('GET', searchUrl, headers=searchHeaders, params=searchParams)
   #prepped = s.prepare_request(req)

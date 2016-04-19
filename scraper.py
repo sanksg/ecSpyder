@@ -1,8 +1,9 @@
+import string, json, time
 from requests import Request, Session
 from urllib.parse import urljoin
 
 class Scraper:
-  def __init__(self, sessionHeaders, searchUrl, searchHeaders ):
+  def __init__(self, sessionHeaders, searchHeaders):
     '''This function takes a
     '''
     self.sessionHeaders = sessionHeaders
@@ -10,7 +11,7 @@ class Scraper:
     self.s = None
     
   
-  def setup_session(self, urlList)
+  def setup_session(self, urlList):
     self.s = Session()
     self.s.headers.update(self.sessionHeaders)
 
@@ -20,7 +21,7 @@ class Scraper:
       
       
   def get_json_response(self, url, params):
-    if self.s = None:
+    if self.s == None:
       raise Exception('The session has not been setup yet! Please call setup_session for this object')
       
     try:
@@ -42,7 +43,7 @@ class Scraper:
     
     
     
-  def get_records(self, searchUrl, sleepTime, startLetter, outFileName, searchParams):
+  def get_write_records(self, searchUrl, sleepTime, startLetter, outFileName, searchParams):
 
     
     # Open a text file for writing the json response
@@ -70,7 +71,7 @@ class Scraper:
         searchParams['iDisplayLength'] = reqAmt
 
         print("Requesting records %d - %d" % (i, i+reqAmt))
-        jsonResp = get_json_response(searchUrl, searchParams)
+        jsonResp = self.get_json_response(searchUrl, searchParams)
         json.dump(jsonResp, outfile)
         outfile.write('\n')
 
@@ -83,39 +84,4 @@ class Scraper:
         
         
         
-        
-#        
-#import string, json
-#import conf
-#import datetime, time
-#import datetime, time
-#from scraper import Scraper
-#
-#
-#
-#
-#def main():
-#
-##  while datetime.datetime.now().time() < datetime.time(2, 30):
-##    print "Sleeping for 300 secs"
-##    time.sleep(300)
-#  scp = Scraper()
-#  print( "== Starting Script ==")
-#  startTime = datetime.datetime.now()
-#  
-#  conf.searchParams['distNo'] = 8
-#  conf.searchParams['lacNo'] = 75
-#
-#  
-#  # Setup the session
-#  session = setup_session()
-#
-#
-#  endtime = datetime.datetime.now()
-#  
-#  print("Script running time : %f seconds" % (endtime - starttime).total_seconds())
-#  
-#  
-#if __name__ == "__main__":
-#  # execute only if run as a script
-#  main()
+   

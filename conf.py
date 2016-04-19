@@ -1,7 +1,7 @@
 from urllib.parse import urljoin
 
 baseUrl = 'http://www.ceo.kerala.gov.in'
-rollsearchUrl = urljoin(baseUrl, 'rollsearch.html')
+rollSearchUrl = urljoin(baseUrl, 'rollsearch.html')
 searchUrl = urljoin(baseUrl, 'electoralroll/edetailListAjax.html')
 detailsUrl = urljoin(baseUrl,'searchDetails.html')
 
