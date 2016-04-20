@@ -84,7 +84,7 @@ def main():
 
         i += reqAmt
         
-        time.sleep(10)
+        time.sleep(1)
 
   endtime = datetime.datetime.now()
   
