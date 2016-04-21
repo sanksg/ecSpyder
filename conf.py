@@ -17,7 +17,7 @@ searchParams = {
 }
 
 detailsParams = {
-  "paramValue": "0751211554"
+  "paramValue": ""
 }
 
 sessionHeaders = {

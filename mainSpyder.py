@@ -1,5 +1,7 @@
 import conf
 import datetime, time
+import string
+
 from scraper import Scraper
 
 
@@ -16,7 +18,7 @@ def main():
   conf.searchParams['lacNo'] = 75
 
   # Cycle through the starting letters 
-  letterArray = ['j']
+  letterArray = string.ascii_lowercase
   
   for letter in letterArray:
     start_threads_for_letter(letter)
@@ -33,7 +35,7 @@ def start_threads_for_letter(startLetter):
   
   print("Getting records starting with " + startLetter)
 
-  scp = Scraper(conf.sessionHeaders, conf.searchHeaders, outFile)
+  scp = Scraper(conf.sessionHeaders, conf.searchHeaders)
   scp.setup_session([conf.baseUrl, conf.rollSearchUrl])
  
   url = conf.searchUrl
@@ -41,7 +43,7 @@ def start_threads_for_letter(startLetter):
 
   params['electorName'] = startLetter
 
-  scp.get_and_write_records(url, 1, params)
+  scp.get_and_write_records(url, 0, params, outFile)
   
   
   

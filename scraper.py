@@ -3,13 +3,12 @@ from requests import Request, Session
 from urllib.parse import urljoin
 
 class Scraper:
-  def __init__(self, sessionHeaders, searchHeaders, outFile):
+  def __init__(self, sessionHeaders, searchHeaders):
     '''This function takes a
     '''
     self.sessionHeaders = sessionHeaders
     self.searchHeaders = searchHeaders
     self.s = None
-    self.outFile= outFile
     
   
   def setup_session(self, urlList):
@@ -20,68 +19,69 @@ class Scraper:
       self.s.get(url)
       #print("Session Headers: ", self.s.headers)
     
-  
-  def try_and_get_response(self, maxTries, sleepTime, url, params):
-    ''' This function is wrapper for the get_json_response function. It handles any exception, and tries to call get_json_response again, up to maxTries number of times.'''
+
+    
+  def get_json_response(self, url, params, maxTries):
+    ''' This function call the get_response function and tries to convert the response content into JSON'''
+    if self.s == None:
+      raise Exception('The session has not been setup yet! Please call setup_session for this object')
+
+
     curTry = 1
     while curTry <= maxTries:
-      print("\tTry #%d" % curTry)
+      # Try to get a response
       try:
-        jsonResp = self.get_json_response(url, params)
-
+        resp = self.get_response(url, params, maxTries)
       except:
-        print ("\t**=> Exception occured!! Sleeping for 30 secs then trying again...")
+        print("\t**=> Exception in get_response() call")
+        raise
+      # Convert the response to JSOn
+      try:
+        respJson = resp.json()
+      except:
+        print ("\t**=> Exception occured while converting GET response to JSON!! Sleeping for 30 secs then trying again...")
         curTry += 1
         if curTry > 3:
-          print("\tCould not get response even after 3 tries!")
+          print("\tCould not convert response to JSON even after 3 tries!")
+          print ("\tResponse Text: ", resp.text)
           raise
-        time.sleep(sleepTime)
+        time.sleep(30)
         continue
         
       else:
         break
       
-    return jsonResp
-      
-    
-  def get_json_response(self, url, params):
-    ''' This function call the get_response function and tries to convert the response content into JSON'''
-    if self.s == None:
-      raise Exception('The session has not been setup yet! Please call setup_session for this object')
-    
-    # Try to get a response
-    try:
-      resp = self.get_response(url, params)
-    except:
-      print("\t**=> Exception in Scraper.get_response() call")
-      raise
-      
-    # Try to convert the response to JSON
-    try:
-      respJson = resp.json()
-    except ValueError:
-      print ("\t**=> Exception while converting the GET request's response to JSON! Doesn't look like it's JSON.")
-      print ("\tResponse Text: ", resp.text)
-      raise
-    
     return respJson
     
     
-  def get_response(self, url, params):
+  def get_response(self, url, params, maxTries):
     ''' This function takes in a url and a set of parameters and uses the previously set up session to send a GET request with the parameters as params and the headers in self.searchHeaders'''
-    try:
-      resp = self.s.get(url, headers=self.searchHeaders, params=params)
-      #print("Request Headers: ", resp.request.headers)
-      #print("Response Headers: ", resp.headers)
-    except:
-      print("\t**=> Exception while making the GET request through the session!")
-      print("\tURL: %s \n\tHeaders: %s \n\tParameters: %s" % (url, self.searchHeaders, params))
-      raise
+    
+    curTry = 1
+    while curTry <= maxTries:
+      try:
+        resp = self.s.get(url, headers=self.searchHeaders, params=params)
+
+      except:
+        print("\t**=> Exception while making the GET request through the session!")
+        print("\tURL: %s \n\tHeaders: %s \n\tParameters: %s" % (url, self.searchHeaders, params))
+        print ("\t**=> Sleeping for 30 secs then trying again...\n")
+        curTry += 1
+        if curTry > 3:
+          print("\tCould not get response even after %d tries!" % maxTries)
+          raise
+        time.sleep(30)
+        print("\tGET Request Try #%d" % curTry)
+        continue
+        
+      else:
+        break
+  
     
     return resp
     
   
-  def get_and_write_records(self, searchUrl, sleepTime, searchParams):
+  def get_and_write_records(self, searchUrl, sleepTime, searchParams, outFile):
     '''This function queries the searchUrl with the searchParams. It figures out the total number of records for the query and then gets all of them. It sleeps for sleepTime seconds between requests.'''
 
     #Init the search parameters
@@ -89,12 +89,12 @@ class Scraper:
     searchParams['iDisplayStart'] = 0
 
     # Initial request for getting the total number of records
-    respJson = self.get_json_response(searchUrl, searchParams)
+    respJson = self.get_json_response(searchUrl, searchParams, 3)
     totRecs = respJson['iTotalRecords']
     print ("Total Records: %d" % totRecs)
 
     i = 0
-    reqAmt = 500
+    reqAmt = 1000
 
     # Get all the records for a particular letter
     while i < totRecs:      
@@ -106,10 +106,10 @@ class Scraper:
 
       print("Requesting records %d - %d for letter %s" % (i, i+reqAmt, searchParams['electorName']))
 
-      jsonResp = self.try_and_get_response(3, sleepTime, searchUrl, searchParams)
+      jsonResp = self.get_json_response(searchUrl, searchParams, 3)
 
-      json.dump(jsonResp, self.outFile)
-      self.outFile.write('\n')
+      json.dump(jsonResp, outFile)
+      outFile.write('\n')
 
       i += reqAmt
 
