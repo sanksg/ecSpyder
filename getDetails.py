@@ -3,7 +3,7 @@ import pickle
 import json
 import csv
 import multiprocessing as mp
-from scraper import Scraper
+
 from myparser import myParser
 
 def load_data(fileType, filename):
@@ -24,26 +24,30 @@ def load_data(fileType, filename):
 def main():
   data = load_data('pickle', 'voterRecords.pcl')
 
-  scp = Scraper(conf.sessionHeaders, conf.searchHeaders)
-  scp.setup_session([conf.baseUrl, conf.rollSearchUrl])
+  detailsFile = open("voterDetails5.txt", 'a')
 
-  detailsFile = open("test.txt", 'a')
-
-  csvFile = open("test.csv", 'w', encoding='utf-8')
+  csvFile = open("parsedCsv5.csv", 'w', encoding='utf-8')
   csvWriter = csv.writer(csvFile)
 
-  prs = myParser(scp, conf.detailsUrl, conf.detailsParams)
+  prs = myParser()
   
   pool = mp.Pool(10)
-  results = pool.imap( prs.get_and_parse, data[12342:12352])
+  startRec = 47433
+  dataSlice = data[startRec:]
+  
+  results = pool.imap( prs.get_and_parse, dataSlice, 100)
   pool.close()
   
-  for i in range(len(data[12342:12352])):
-    print("Processing Results")
-    (parsedDetails, csvRow) = results.next()
+  for i in range(len(dataSlice)):
+    
+    (parsedDetails, csvRow) = next(results)
     json.dump(parsedDetails, detailsFile)
-    csvWriter.writerow(csvRow)
-
+    try:
+      csvWriter.writerow(csvRow)
+    except:
+      print("Error while writing to CSV file. Skipping...")
+      
+    print("Wrote record #", i+startRec, " - ", csvRow)
 #      
 #      i+=1
 #      print("Record #%d" % i)

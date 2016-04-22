@@ -1,15 +1,20 @@
+import time
 import re
+import conf
 from bs4 import BeautifulSoup as BS
+from scraper import Scraper
 
 class myParser:
-  def __init__(self, scp, url, params):
-    self.scp = scp
-    self.detailsParams = params
-    self.detailsUrl = url
+  def __init__(self):
+    self.detailsParams = conf.detailsParams
+    self.detailsUrl =  conf.detailsUrl
+    self.scp = Scraper(conf.sessionHeaders, conf.searchHeaders)
+    self.scp.setup_session([conf.baseUrl, conf.rollSearchUrl])
+
   
   def get_and_parse(self, rec):
 
-    print(str(rec[0]).encode('utf-8'))
+#    print(str(rec[0]).encode('utf-8'))
     csvRow = rec[0:5]
     csvRow.append(rec[7])
 
@@ -17,13 +22,21 @@ class myParser:
     if not urlTag:
       raise Exception('Cannot find a details url in the record: \n'+str(rec))
 
+    
     self.detailsParams['paramValue'] = urlTag.group(1)
 
     #      print(detailsParams)
+
     resp = self.scp.get_response(self.detailsUrl, self.detailsParams, 3)
+    
+    checkInvalid = re.search("Invalid access to the page", resp.text)
+    if checkInvalid:
+      print("Looks like the record for %s %s is not in the database anymore. Continuing on..." % (rec[0],rec[1]))
+      return ("", "")
+      
     #      print(resp.request.url)    
     soup = BS(resp.content, 'html.parser')
-    #      print(soup.prettify('latin-1'))
+#    print(soup.prettify('latin-1'))
 
     parsedDetails = []
 
@@ -51,7 +64,8 @@ class myParser:
     try:
       csvRow.append(parsedDetails[2][1])
     except:
-      print("Exception while parsing details for record: \n"+rec)
+      print("Exception while parsing details for record: \n"+str(rec))
+      print("Parsed details: %s" % str(parsedDetails))
       print("Continuing with blank values")
       csvRow.append("")
       csvRow.append("")
@@ -60,5 +74,6 @@ class myParser:
         csvRow.append('F')
       else:
         csvRow.append('M')
-
+    
+    time.sleep(0.3)
     return (parsedDetails, csvRow)

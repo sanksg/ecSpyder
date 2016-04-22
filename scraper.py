@@ -39,13 +39,13 @@ class Scraper:
       try:
         respJson = resp.json()
       except:
-        print ("\t**=> Exception occured while converting GET response to JSON!! Sleeping for 30 secs then trying again...")
+        print ("\t**=> Exception occured while converting GET response to JSON!! Sleeping for 10 secs then trying again...")
         curTry += 1
         if curTry > 3:
           print("\tCould not convert response to JSON even after 3 tries!")
           print ("\tResponse Text: ", resp.text)
           raise
-        time.sleep(30)
+        time.sleep(10)
         continue
         
       else:
@@ -65,12 +65,13 @@ class Scraper:
       except:
         print("\t**=> Exception while making the GET request through the session!")
         print("\tURL: %s \n\tHeaders: %s \n\tParameters: %s" % (url, self.searchHeaders, params))
-        print ("\t**=> Sleeping for 30 secs then trying again...\n")
+        print("\tResponse: ", resp.text)
+        print ("\t**=> Sleeping for 10 secs then trying again...\n")
         curTry += 1
         if curTry > 3:
           print("\tCould not get response even after %d tries!" % maxTries)
           raise
-        time.sleep(30)
+        time.sleep(10)
         print("\tGET Request Try #%d" % curTry)
         continue
         
