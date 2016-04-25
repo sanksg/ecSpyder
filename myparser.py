@@ -1,19 +1,28 @@
 import time
 import re
 import conf
+import random
+import json
+from datetime import datetime
 from bs4 import BeautifulSoup as BS
 from scraper import Scraper
 
+
+
 class myParser:
   def __init__(self):
+    pass
+    
+  def init_web(self):
     self.detailsParams = conf.detailsParams
     self.detailsUrl =  conf.detailsUrl
-    self.scp = Scraper(conf.sessionHeaders, conf.searchHeaders)
-    self.scp.setup_session([conf.baseUrl, conf.rollSearchUrl])
+    self.scp = Scraper(conf.sessionHeaders, conf.searchHeaders, [conf.baseUrl, conf.rollSearchUrl])
+    self.scp.setup_session()
 
   
-  def get_and_parse(self, rec):
-
+  def request_and_parse(self, rec):
+#    startTime = datetime.now()
+    
 #    print(str(rec[0]).encode('utf-8'))
     csvRow = rec[0:5]
     csvRow.append(rec[7])
@@ -22,12 +31,15 @@ class myParser:
     if not urlTag:
       raise Exception('Cannot find a details url in the record: \n'+str(rec))
 
-    
+#    print ("After paramvalue RE search: ", (datetime.now()-startTime).total_seconds())
     self.detailsParams['paramValue'] = urlTag.group(1)
 
     #      print(detailsParams)
 
     resp = self.scp.get_response(self.detailsUrl, self.detailsParams, 3)
+    
+#    print ("After GET: ", (datetime.now()-startTime).total_seconds())
+    
     
     checkInvalid = re.search("Invalid access to the page", resp.text)
     if checkInvalid:
@@ -60,20 +72,23 @@ class myParser:
         parsedRow = [ele for ele in txtCols if ele]
         parsedDetails.append(parsedRow)
 
-    # Now we have gone through all the tables on the page and parseDetails is complete
-    try:
-      csvRow.append(parsedDetails[2][1])
-    except:
-      print("Exception while parsing details for record: \n"+str(rec))
-      print("Parsed details: %s" % str(parsedDetails))
-      print("Continuing with blank values")
-      csvRow.append("")
-      csvRow.append("")
-    else:
-      if re.search("Husband", parsedDetails[3][0]):
-        csvRow.append('F')
-      else:
-        csvRow.append('M')
+#    # Now we have gone through all the tables on the page and parseDetails is complete
+#    try:
+#      csvRow.append(parsedDetails[2][1])
+#    except:
+#      print("Exception while parsing details for record: \n"+str(rec))
+#      print("P`arsed details: %s" % str(parsedDetails))
+#      print("Continuing with blank values")
+#      csvRow.append("")
+#    else:
+#      if re.search("Husband", parsedDetails[3][0]):
+#        csvRow.append('F')
+#      else:
+#        csvRow.append('M')
     
-    time.sleep(0.3)
-    return (parsedDetails, csvRow)
+#    print ("After all processing: ", (datetime.now()-startTime).total_seconds())
+    
+    time.sleep(random.uniform(0.5,1))
+    return parsedDetails
+
+  

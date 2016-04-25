@@ -1,22 +1,34 @@
-import string, json, time
+import string, json, time, random
 from requests import Request, Session
 from urllib.parse import urljoin
 
 class Scraper:
-  def __init__(self, sessionHeaders, searchHeaders):
+  def __init__(self, sessionHeaders, searchHeaders, setupUrlList):
     '''This function takes a
     '''
     self.sessionHeaders = sessionHeaders
     self.searchHeaders = searchHeaders
+    self.setupUrlList = setupUrlList
     self.s = None
     
+  def reset_session(self, url):
+    try:
+      self.s.get(url=url, headers={'Connection':'close'})
+    except:
+      print("Timed out while closing session. Continuing...")
+    time.sleep(4)
+    self.setup_session()
   
-  def setup_session(self, urlList):
+  def setup_session(self):
     self.s = Session()
     self.s.headers.update(self.sessionHeaders)
 
-    for url in urlList:
-      self.s.get(url)
+    for url in self.setupUrlList:
+      try:
+        self.s.get(url)
+      except BaseException as e:
+        print("Exception while trying to setup session and visit starting pages!")
+        print(str(e))
       #print("Session Headers: ", self.s.headers)
     
 
@@ -62,17 +74,18 @@ class Scraper:
       try:
         resp = self.s.get(url, headers=self.searchHeaders, params=params)
 
-      except:
-        print("\t**=> Exception while making the GET request through the session!")
+      except BaseException as e:
+        sleepTime = random.uniform(3,6)*curTry
+        print("\t**=> Exception while making the GET request!: ", str(e))
         print("\tURL: %s \n\tHeaders: %s \n\tParameters: %s" % (url, self.searchHeaders, params))
-        print("\tResponse: ", resp.text)
-        print ("\t**=> Sleeping for 10 secs then trying again...\n")
+        print ("\t**=> Sleeping for %s secs then trying again...\n" % sleepTime)
         curTry += 1
-        if curTry > 3:
+        if curTry > 4:
           print("\tCould not get response even after %d tries!" % maxTries)
           raise
-        time.sleep(10)
+        time.sleep(sleepTime)
         print("\tGET Request Try #%d" % curTry)
+#        self.reset_session(url)
         continue
         
       else:
