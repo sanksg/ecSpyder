@@ -9,7 +9,9 @@ from scraper import Scraper
 
 
 
-class myParser:
+# This has to be named MyParser because Python has the word parser reserved as a special keyword
+
+class MyParser:
   def __init__(self):
     pass
     
@@ -19,22 +21,23 @@ class myParser:
     self.scp = Scraper(conf.sessionHeaders, conf.searchHeaders, [conf.baseUrl, conf.rollSearchUrl])
     self.scp.setup_session()
 
-  
-  def request_and_parse(self, rec):
-#    startTime = datetime.now()
     
-#    print(str(rec[0]).encode('utf-8'))
-    csvRow = rec[0:5]
-    csvRow.append(rec[7])
-
+  def parse_details_tag(self, rec):
     urlTag = re.search("paramValue=(\w+)\"", rec[6])
     if not urlTag:
       raise Exception('Cannot find a details url in the record: \n'+str(rec))
 
-#    print ("After paramvalue RE search: ", (datetime.now()-startTime).total_seconds())
-    self.detailsParams['paramValue'] = urlTag.group(1)
+    return urlTag.group(1)
+  
+  
+  
+  def request_and_parse(self, rec):
+#    startTime = datetime.now()    
+#    print(str(rec[0]).encode('utf-8'))
 
-    #      print(detailsParams)
+    detailsTag = self.parse_details_tag(rec)
+#    print ("After paramvalue RE search: ", (datetime.now()-startTime).total_seconds())
+    self.detailsParams['paramValue'] = detailsTag
 
     resp = self.scp.get_response(self.detailsUrl, self.detailsParams, 3)
     
@@ -44,11 +47,10 @@ class myParser:
     checkInvalid = re.search("Invalid access to the page", resp.text)
     if checkInvalid:
       print("Looks like the record for %s %s is not in the database anymore. Continuing on..." % (rec[0],rec[1]))
-      return ("", "")
+      return None
       
     #      print(resp.request.url)    
     soup = BS(resp.content, 'html.parser')
-#    print(soup.prettify('latin-1'))
 
     parsedDetails = []
 
@@ -72,21 +74,7 @@ class myParser:
         parsedRow = [ele for ele in txtCols if ele]
         parsedDetails.append(parsedRow)
 
-#    # Now we have gone through all the tables on the page and parseDetails is complete
-#    try:
-#      csvRow.append(parsedDetails[2][1])
-#    except:
-#      print("Exception while parsing details for record: \n"+str(rec))
-#      print("P`arsed details: %s" % str(parsedDetails))
-#      print("Continuing with blank values")
-#      csvRow.append("")
-#    else:
-#      if re.search("Husband", parsedDetails[3][0]):
-#        csvRow.append('F')
-#      else:
-#        csvRow.append('M')
-    
-#    print ("After all processing: ", (datetime.now()-startTime).total_seconds())
+    #    print ("After all processing: ", (datetime.now()-startTime).total_seconds())
     
     time.sleep(random.uniform(0.5,1))
     return parsedDetails
