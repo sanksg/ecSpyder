@@ -15,7 +15,18 @@ def splitDataset(dataList, splitRatio):
   return [trainSet, copy]
 
 
-def get_counts(dataList):
+def get_ngrams(name, ngramLen):
+  if len(name) < ngramLen:
+    ngramLen = len(name)
+  ngramList = [name]
+#  for n in range(1, ngramLen+1):
+  ngramList.append(name[-ngramLen:len(name)])
+  ngramList = list(set(ngramList))
+  
+  return ngramList
+
+
+def get_counts(dataList, ngramLen):
   genIdx = 1
   namIdx = 0
   
@@ -25,22 +36,24 @@ def get_counts(dataList):
   for rec in dataList:
     gender = rec[genIdx]
     name = rec[namIdx]
-        
+    
     # Create the 1st level dict for indep value
     if gender not in condProbs:
       condProbs[gender]={}
-      
-    # Create the 2nd level dict for dep value
-    if name not in condProbs[gender]:
-      condProbs[gender][name] = 0
     
-    #Increment the conditional counts
-    condProbs[gender][name] += 1
-    
-    # Also calculate the probabilities of names
-    if name not in probs:
-      probs[name] = 0
-    probs[name] += 1
+    for name in get_ngrams(name, ngramLen):
+      # Create the 2nd level dict for dep value
+      if name not in condProbs[gender]:
+        condProbs[gender][name] = 0
+
+      #Increment the conditional counts
+      condProbs[gender][name] += 1
+
+      # Also calculate the probabilities of names
+      if name not in probs:
+        probs[name] = 0
+        
+      probs[name] += 1
 
   return (condProbs, probs)
     
@@ -48,7 +61,7 @@ def get_probs(condProbs, probs):
   # Now divide the conditional counts with the totals to get prob
   for gen in condProbs:
     # Denominator = total number of people/names in list who are M or F, not just uniques
-    denom =sum(condProbs[gen].values())
+    denom = sum(condProbs[gen].values())
     for nam in condProbs[gen]:
       condProbs[gen][nam] =  condProbs[gen][nam]/denom
   
@@ -61,27 +74,8 @@ def get_probs(condProbs, probs):
   return (condProbs, probs)
     
  
-
-def is_female(rec, condProbs, nameProbs, gendProbs):
-  name,gend = rec
   
-  pr_f = 0
-  pr_m = 0
-  if name in condProbs['F']:
-    pr_f = math.exp(math.log(condProbs['F'][name]) + math.log(gendProbs['F']))
-  if name in condProbs['M']:
-    pr_m = math.exp(math.log(condProbs['M'][name]) + math.log(gendProbs['M']))
-
-  if pr_f > pr_m:
-    if gend=='M':
-      print("%s should be F but marked M, with probs, M: %f, F:%f" % (name, pr_m, pr_f))
-    return 'F'
-  else:
-    return gend
-  
-  
-  
-def save_probs(data, fn):
+def save_probs(data, fn, ngramLen):
 
   dataList = []
 
@@ -93,7 +87,7 @@ def save_probs(data, fn):
 #  (trainSet, testSet) = splitDataset(dataList, 0.67)
 #  print(len(trainSet), len(testSet))
   
-  condProbs, nameProbs = get_counts(dataList)
+  condProbs, nameProbs = get_counts(dataList, ngramLen)
   condProbs, nameProbs = get_probs(condProbs, nameProbs)
   
   with open(fn, 'wb') as pickleFile:
@@ -106,16 +100,43 @@ def load_probs(fn):
     condProbs, nameProbs = pickle.load(pf)
   
   return (condProbs, nameProbs)
+
+
+def is_female(rec, condProbs, nameProbs, gendProbs, ngramLen):
+  name,gend = rec
+  
+  pr_f = 0
+  pr_m = 0
+  
+  for ngram in get_ngrams(name, ngramLen):
+    print(ngram)
+    if ngram in condProbs['F']:
+      pr_f += math.log(condProbs['F'][ngram])
+    if ngram in condProbs['M']:
+      pr_m = math.log(condProbs['M'][ngram])
+                          
+  pr_f = math.exp(pr_f + math.log(gendProbs['F']))
+  pr_m = math.exp(pr_m + math.log(gendProbs['M']))
+  
+  if pr_f > pr_m:
+    if gend=='M':
+      
+#      print("%s should be F but marked M, with probs, M: %f, F:%f" % (name, pr_m, pr_f))
+      pass
+    return 'F'
+  else:
+    return gend
   
   
 def main():
     
   flt = FileUtils()
   data = flt.load_csv('parsedCsvAll.csv')
+  
+  ngramLen = 0
 
   prob_fn = 'probabilities.pcl'
-#  save_probs(data[1:], prob_fn)
-#  return 0
+  save_probs(data[1:], prob_fn, ngramLen)
   condProbs, nameProbs = load_probs(prob_fn)
   gendProbs = {'F':0.52, 'M':0.48}
   
@@ -124,13 +145,11 @@ def main():
   csvWriter = csv.writer(newCsv, delimiter=',') 
   csvWriter.writerow(data[0])
   
-#  i = 1
   for row in data[1:]:
-#    print(i)
     if len(row) < 10:
       continue
     if row[9] == 'M':
-      row[9] = is_female([row[0], row[9]], condProbs, nameProbs, gendProbs)
+      row[9] = is_female([row[0], row[9]], condProbs, nameProbs, gendProbs, ngramLen)
       
     csvWriter.writerow(row)
 
