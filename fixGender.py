@@ -118,6 +118,8 @@ def is_female(rec, condProbs, nameProbs, gendProbs, ngramLen):
   pr_f = math.exp(pr_f + math.log(gendProbs['F']))
   pr_m = math.exp(pr_m + math.log(gendProbs['M']))
   
+  print(pr_f, pr_m)
+  
   if pr_f > pr_m:
     if gend=='M':
       
@@ -140,8 +142,8 @@ def main():
   save_probs(data[1:100], prob_fn, ngramLen)
   condProbs, nameProbs = load_probs(prob_fn)
   
-  pprint(condProbs, width=1)
-  pprint(nameProbs, width=1)
+#  pprint(condProbs, width=1)
+#  pprint(nameProbs, width=1)
   gendProbs = {'F':0.52, 'M':0.48}
   
 
@@ -149,7 +151,7 @@ def main():
 #  csvWriter = csv.writer(newCsv, delimiter=',') 
 #  csvWriter.writerow(data[0])
 
-  for row in data[1:]:
+  for row in data[1:100]:
     if len(row) < 10:
       continue
     if row[9] == 'M':
