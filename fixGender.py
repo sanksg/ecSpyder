@@ -74,7 +74,8 @@ def is_female(rec, condProbs, nameProbs, gendProbs):
 
   if pr_f > pr_m:
     if gend=='M':
-      print("%s should be F but marked M, with probs, M: %f, F:%f" % (name, pr_m, pr_f))
+#      print("%s should be F but marked M, with probs, M: %f, F:%f" % (name, pr_m, pr_f))
+      pass
     return 'F'
   else:
     return gend
@@ -115,11 +116,12 @@ def main():
 
   prob_fn = 'probabilities.pcl'
 #  save_probs(data[1:], prob_fn)
-#  return 0
+
   condProbs, nameProbs = load_probs(prob_fn)
+#  print(condProbs, nameProbs)
+  
   gendProbs = {'F':0.52, 'M':0.48}
   
-
   newCsv = open("parsedCsv_gender.csv", 'w', encoding='utf-8', newline='\n')
   csvWriter = csv.writer(newCsv, delimiter=',') 
   csvWriter.writerow(data[0])
