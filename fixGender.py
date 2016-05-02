@@ -109,7 +109,6 @@ def is_female(rec, condProbs, nameProbs, gendProbs, ngramLen):
   pr_m = 0
   
   for ngram in get_ngrams(name, ngramLen):
-    print(ngram)
     if ngram in condProbs['F']:
       pr_f += math.log(condProbs['F'][ngram])
     if ngram in condProbs['M']:
@@ -136,22 +135,24 @@ def main():
   ngramLen = 0
 
   prob_fn = 'probabilities.pcl'
-  save_probs(data[1:], prob_fn, ngramLen)
+  
+  save_probs(data[1:100], prob_fn, ngramLen)
   condProbs, nameProbs = load_probs(prob_fn)
+  print(condProbs, nameProbs)
   gendProbs = {'F':0.52, 'M':0.48}
   
 
-  newCsv = open("parsedCsv_gender.csv", 'w', encoding='utf-8', newline='\n')
-  csvWriter = csv.writer(newCsv, delimiter=',') 
-  csvWriter.writerow(data[0])
-  
+#  newCsv = open("parsedCsv_gender.csv", 'w', encoding='utf-8', newline='\n')
+#  csvWriter = csv.writer(newCsv, delimiter=',') 
+#  csvWriter.writerow(data[0])
+
   for row in data[1:]:
     if len(row) < 10:
       continue
     if row[9] == 'M':
       row[9] = is_female([row[0], row[9]], condProbs, nameProbs, gendProbs, ngramLen)
       
-    csvWriter.writerow(row)
+#    csvWriter.writerow(row)
 
   
 if __name__ == "__main__":
