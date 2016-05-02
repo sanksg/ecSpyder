@@ -2,6 +2,7 @@ import csv
 import random
 import math
 import pickle
+from pprint import pprint
 from fileUtils import FileUtils
 
 
@@ -138,7 +139,9 @@ def main():
   
   save_probs(data[1:100], prob_fn, ngramLen)
   condProbs, nameProbs = load_probs(prob_fn)
-  print(condProbs, nameProbs)
+  
+  pprint(condProbs, width=1)
+  pprint(nameProbs, width=1)
   gendProbs = {'F':0.52, 'M':0.48}
   
 
