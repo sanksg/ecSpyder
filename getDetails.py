@@ -66,7 +66,7 @@ def parse_fetch_details_write_csv():
   
   csvFile = open("parsedCsvAll.csv", 'w', encoding='utf-8', newline='\n')
   csvWriter = csv.writer(csvFile, delimiter=',') 
-  csvWriter.writerow(['First Name', 'Middle Name', 'Relation Name', 'House Name', 'Serial No', 'LAC No', 'PS No', 'Status', 'Age', 'Gender'])
+  csvWriter.writerow(['First Name', 'Middle Name', 'Relation Name', 'House Name', 'Serial No', 'LAC No', 'PS No', 'Status', 'Age', 'Gender', 'ELID No'])
   csvRow = []
 #  
 #  prs = MyParser()
@@ -116,7 +116,8 @@ def parse_fetch_details_write_csv():
         csvRow.append('F')
       else:
         csvRow.append('M')
-    
+      
+      csvRow.append(elid)
     # Write row to CSV
     csvWriter.writerow(csvRow)
 #    i+=1

@@ -2,6 +2,7 @@ import glob
 import os
 import json
 import pickle
+import csv
 
 
 class FileUtils:
@@ -10,7 +11,7 @@ class FileUtils:
   
   
   def load_csv(self, fn):
-    lines = csv.reader(open(fn, 'r'))
+    lines = csv.reader(open(fn, 'r', encoding='utf-8'))
     dataset = list(lines)
     return dataset
   
