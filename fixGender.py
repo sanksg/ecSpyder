@@ -112,11 +112,14 @@ def is_female(rec, condProbs, nameProbs, gendProbs, ngramLen):
   for ngram in get_ngrams(name, ngramLen):
     if ngram in condProbs['F']:
       pr_f += math.log(condProbs['F'][ngram])
+      
     if ngram in condProbs['M']:
       pr_m = math.log(condProbs['M'][ngram])
-                          
-  pr_f = math.exp(pr_f + math.log(gendProbs['F']))
-  pr_m = math.exp(pr_m + math.log(gendProbs['M']))
+
+  if pr_f != 0:
+    pr_f = math.exp(pr_f + math.log(gendProbs['F']))
+  if pr_m != 0:
+    pr_m = math.exp(pr_m + math.log(gendProbs['M']))
   
   print(pr_f, pr_m)
   
