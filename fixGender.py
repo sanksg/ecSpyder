@@ -88,8 +88,8 @@ def save_probs(data, fn, ngramLen, wholeWord):
   for row in data:
     if len(row) < 10:
       continue
-    if row[9] == "F":
-      dataList.append([row[0], row[9]])
+#    if row[9] == "F":
+    dataList.append([row[0], row[9]])
 
 #  (trainSet, testSet) = splitDataset(dataList, 0.67)
 #  print(len(trainSet), len(testSet))
