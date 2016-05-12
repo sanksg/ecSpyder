@@ -15,6 +15,11 @@ class FileUtils:
     dataset = list(lines)
     return dataset
   
+  def init_csv(self, outFn):
+    newCsv = open(outFn, 'w', encoding='utf-8', newline='\n')
+    return csv.writer(newCsv, delimiter=',') 
+  
+  
   def concat_files(self, filePattern, outFn):
     for f in glob.glob(filePattern):
       print(f)

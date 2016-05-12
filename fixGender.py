@@ -4,64 +4,8 @@ import math
 import pickle
 from pprint import pprint
 from fileUtils import FileUtils
+from probUtils import ProbUtils
 
-
-def split_dataset(dataList, splitRatio):
-  trainSize = int(len(dataList) * splitRatio)
-  trainSet = []
-  copy = list(dataList)
-  while len(trainSet) < trainSize:
-    index = random.randrange(len(copy))
-    trainSet.append(copy.pop(index))
-  return [trainSet, copy]
-
-
-def get_ngrams(name, ngramLen, wholeWord):
-  if len(name) < ngramLen:
-    ngramLen = len(name)
-  ngramList = []
-  
-  if wholeWord:
-    ngramList.append(name)
-  
-  for n in range(1, ngramLen+1):
-    ngramList.append(name[-n:len(name)])
-    ngramList = list(set(ngramList))
-  
-#  print(ngramList)
-  return ngramList
-
-
-def get_ngram_probs(dataList, ngramLen, wholeWord):
-  
-  condProbs = {}
-
-  for rec in dataList:
-    name, gender = rec
-    
-    # Create the 1st level dict for indep value
-    if gender not in condProbs:
-      condProbs[gender]={}
-    
-    for name in get_ngrams(name, ngramLen, wholeWord):
-      # Create the 2nd level dict for dep value
-      if name not in condProbs[gender]:
-        condProbs[gender][name] = 0
-
-      #Increment the conditional counts
-      condProbs[gender][name] += 1
-
-  # Now divide the conditional counts with the totals to get prob
-  for gender in condProbs:
-    # Denominator = total number of people/names in list who are M or F, not just uniques
-    denom = sum(condProbs[gender].values())
-    
-    for nam in condProbs[gender]:
-      condProbs[gender][nam] =  condProbs[gender][nam]/denom
-  
-
-  return condProbs
-    
 
 #  
 #def load_probs(fn):
@@ -73,21 +17,20 @@ def get_ngram_probs(dataList, ngramLen, wholeWord):
 
 
 def calc_bayes_probs(dataList, condProbs, gendProbs, ngramLen, wholeWord):
-  
   bayesProbs = {}
   
   for rec in dataList:
     name, gend = rec
-
+    name = name.strip().lower()
     
     if name in bayesProbs:
       continue
       
     bayesProbs[name]={}
 
-    pr_f = 1
-    pr_m = 1
-    for ngram in get_ngrams(name, ngramLen, wholeWord):
+    pr_f = float(1)
+    pr_m = float(1)
+    for ngram in probUtils.get_ngrams(name, ngramLen, wholeWord):
             
       if 'F' in condProbs and ngram in condProbs['F']:
         pr_f *= condProbs['F'][ngram]
@@ -109,6 +52,7 @@ def calc_bayes_probs(dataList, condProbs, gendProbs, ngramLen, wholeWord):
     bayesProbs[name]["F"] = pr_f
 
 #  pprint(bayesProbs)
+#  pprint (bayesProbs)
   return bayesProbs
 
     
@@ -116,13 +60,18 @@ def male_or_female(name, gender, bayesProbs):
   pr_m = 0
   pr_f = 0
   
+  #Check lowercase only
+  name = name.strip().lower()
+  
   if name in bayesProbs:
     if "M" in bayesProbs[name]:
       pr_m = bayesProbs[name]["M"]  
   
     if "F" in bayesProbs[name]:
       pr_f = bayesProbs[name]["F"]
-  
+#  else:
+#    print(name)
+#  
   if pr_f > pr_m:
     return "F"
   else:
@@ -133,61 +82,93 @@ def get_probs(data, prob_fn, gendProbs, ngramLen, wholeWord):
 
   dataList = []
 
+  #Calculate probabilities for F records only
   for row in data:
-    if len(row) < 10 or row[9] == "M":
+    if len(row) < 10:# or row[9] == "M":
       continue
-#    if row[9] == "F":
-    dataList.append([row[0].strip().lower(), row[9]])
 
-#  (trainSet, testSet) = splitDataset(dataList, 0.67)
-#  print(len(trainSet), len(testSet))
+    dataList.append([row[0].strip().lower(), row[9]])
   
-  condProbs = get_ngram_probs(dataList, ngramLen, wholeWord)
+  condProbs = probUtils.get_ngram_probs(dataList, ngramLen, wholeWord)
   bayesProbs = calc_bayes_probs(dataList, condProbs, gendProbs, ngramLen, wholeWord)
   
   return bayesProbs
-#  with open(prob_fn, 'wb') as pickleFile:
-#    pickle.dump([calcLogProbs, nameProbs], pickleFile)
-  
+
   
 def main():
-  
-  
-  flt = FileUtils()
-  
   dataFn = 'parsedCsvAll.csv'
   outFn = 'parsedCsv_gender.csv'
+  probsOut = "calcProbs.csv"
+  prob_fn = 'probabilities.pcl'
+
+  trainTestRatio = 0.67
+  ngramLen = 0
+  wholeWord = True
+  gendProbs = {'F':0.52, 'M':0.48}
+
+  global flt
+  global probUtils
+  flt = FileUtils()
+  probUtils = ProbUtils()
+  
+  csvWriter = flt.init_csv(outFn)
+  probWriter = flt.init_csv(probsOut)
+  
+  print ("Filenames dataFn=%s, and outFn=%s" %(dataFn, outFn))
+  data = flt.load_csv(dataFn)
+  (trainSet, testSet) = probUtils.split_dataset(data[1:], trainTestRatio)
+
+  print(len(trainSet), len(testSet))
+  bayesProbs = get_probs(trainSet, prob_fn, gendProbs, ngramLen, wholeWord)
+  probWriter.writerow(["Name", "Prob_M", "Prob_F"])
+  for key in bayesProbs:
+    probWriter.writerow([key, bayesProbs[key]['M'], bayesProbs[key]['F']])
+  
+  # Write the column headings
+  data[0].append("Orig")
+  csvWriter.writerow(data[0])
+
+  
+  total = 0
+  f2m = 0
+  m2f = 0
+  fems = 0
+  males = 0
+  
+  for row in testSet:
+    # If the row doesn't have all the parameters, just skip it
+    if len(row) < 10:
+      continue
+    
+    predGender = male_or_female(row[0], row[9], bayesProbs)
+    
+    total+=1
+    #Check if right or wrong
+    if (predGender == "F"):
+      fems += 1
+      if row[9] == "M":
+        m2f +=1
+    else:
+      #If original value was F and we marked it as M, it's an error
+      if row[9] == "F":
+        f2m += 1
+        
+      males += 1
+    
+    #Write the predictions
+    row.append(row[9])
+    row[9] = predGender
+    csvWriter.writerow(row)
   
   
-  for i in range(0, 1):
-    print ("Run #%d with dataFn=%s, and outFn=%s" %(i, dataFn, outFn))
-    data = flt.load_csv(dataFn)
-
-    ngramLen = 2
-    wholeWord = True
-    gendProbs = {'F':0.50, 'M':0.50}
+  percents = []
+  for val in [m2f, f2m, fems, males]:
+    percents.append((val/total)*100)
     
-    prob_fn = 'probabilities.pcl'
+  
+  print("M2F: {:f}%  F2M: {:f}% , Females: {:f}%, Males: {:f}%".format(*percents))
+  print("Total: ", total)
 
-    
-    bayesProbs = get_probs(data[1:], prob_fn, gendProbs, ngramLen, wholeWord)
-
-
-    newCsv = open(outFn, 'w', encoding='utf-8', newline='\n')
-    csvWriter = csv.writer(newCsv, delimiter=',') 
-    csvWriter.writerow(data[0])
-
-    for row in data[1:]:
-      if len(row) < 10:
-        continue
-      
-      row[9] = male_or_female(row[0].strip().lower(), row[9], bayesProbs)
-
-      csvWriter.writerow(row)
-
-    temp = outFn
-    outFn = dataFn
-    dataFn = temp
     
 if __name__ == "__main__":
   main()
