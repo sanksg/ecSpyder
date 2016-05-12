@@ -6,7 +6,7 @@ from pprint import pprint
 from fileUtils import FileUtils
 
 
-def splitDataset(dataList, splitRatio):
+def split_dataset(dataList, splitRatio):
   trainSize = int(len(dataList) * splitRatio)
   trainSet = []
   copy = list(dataList)
@@ -32,16 +32,12 @@ def get_ngrams(name, ngramLen, wholeWord):
   return ngramList
 
 
-def get_counts(dataList, ngramLen, wholeWord):
-  genIdx = 1
-  namIdx = 0
+def get_ngram_probs(dataList, ngramLen, wholeWord):
   
   condProbs = {}
-  probs = {}
 
   for rec in dataList:
-    gender = rec[genIdx]
-    name = rec[namIdx]
+    name, gender = rec
     
     # Create the 1st level dict for indep value
     if gender not in condProbs:
@@ -55,86 +51,103 @@ def get_counts(dataList, ngramLen, wholeWord):
       #Increment the conditional counts
       condProbs[gender][name] += 1
 
-      # Also calculate the probabilities of names
-      if name not in probs:
-        probs[name] = 0
-        
-      probs[name] += 1
-
-  return (condProbs, probs)
-    
-def get_probs(condProbs, probs):
   # Now divide the conditional counts with the totals to get prob
-  for gen in condProbs:
+  for gender in condProbs:
     # Denominator = total number of people/names in list who are M or F, not just uniques
-    denom = sum(condProbs[gen].values())
-    for nam in condProbs[gen]:
-      condProbs[gen][nam] =  condProbs[gen][nam]/denom
-  
-  # Also divide the name counts with totals to get prob
-  # Denominator = total number of people/names in list, not the number of unique names
-  tot = sum(probs.values())
-  for nam in probs:
-    probs[nam] = probs[nam]/tot
+    denom = sum(condProbs[gender].values())
     
-  return (condProbs, probs)
-    
- 
+    for nam in condProbs[gender]:
+      condProbs[gender][nam] =  condProbs[gender][nam]/denom
   
-def save_probs(data, fn, ngramLen, wholeWord):
+
+  return condProbs
+    
+
+#  
+#def load_probs(fn):
+#  with open(fn, 'rb') as pf:
+#    condProbs, nameProbs = pickle.load(pf)
+#  
+#  return (condProbs, nameProbs)
+
+
+
+def calc_bayes_probs(dataList, condProbs, gendProbs, ngramLen, wholeWord):
+  
+  bayesProbs = {}
+  
+  for rec in dataList:
+    name, gend = rec
+
+    
+    if name in bayesProbs:
+      continue
+      
+    bayesProbs[name]={}
+
+    pr_f = 1
+    pr_m = 1
+    for ngram in get_ngrams(name, ngramLen, wholeWord):
+            
+      if 'F' in condProbs and ngram in condProbs['F']:
+        pr_f *= condProbs['F'][ngram]
+
+      if 'M' in condProbs and ngram in condProbs['M']:
+        pr_m *= condProbs['M'][ngram]
+
+    if pr_f == 1:
+      pr_f = 0
+    if pr_m == 1:
+      pr_m = 0
+      
+    pr_f = pr_f * gendProbs['F']
+    pr_m = pr_m * gendProbs['M']
+    
+    #  print(pr_f, pr_m)
+    
+    bayesProbs[name]["M"] = pr_m
+    bayesProbs[name]["F"] = pr_f
+
+#  pprint(bayesProbs)
+  return bayesProbs
+
+    
+def male_or_female(name, gender, bayesProbs):
+  pr_m = 0
+  pr_f = 0
+  
+  if name in bayesProbs:
+    if "M" in bayesProbs[name]:
+      pr_m = bayesProbs[name]["M"]  
+  
+    if "F" in bayesProbs[name]:
+      pr_f = bayesProbs[name]["F"]
+  
+  if pr_f > pr_m:
+    return "F"
+  else:
+    return gender
+
+  
+def get_probs(data, prob_fn, gendProbs, ngramLen, wholeWord):
 
   dataList = []
 
   for row in data:
-    if len(row) < 10:
+    if len(row) < 10 or row[9] == "M":
       continue
 #    if row[9] == "F":
-    dataList.append([row[0], row[9]])
+    dataList.append([row[0].strip().lower(), row[9]])
 
 #  (trainSet, testSet) = splitDataset(dataList, 0.67)
 #  print(len(trainSet), len(testSet))
   
-  condProbs, nameProbs = get_counts(dataList, ngramLen, wholeWord)
-  condProbs, nameProbs = get_probs(condProbs, nameProbs)
+  condProbs = get_ngram_probs(dataList, ngramLen, wholeWord)
+  bayesProbs = calc_bayes_probs(dataList, condProbs, gendProbs, ngramLen, wholeWord)
   
-  with open(fn, 'wb') as pickleFile:
-    pickle.dump([condProbs, nameProbs], pickleFile)
-  
-  
-  
-def load_probs(fn):
-  with open(fn, 'rb') as pf:
-    condProbs, nameProbs = pickle.load(pf)
-  
-  return (condProbs, nameProbs)
-
-
-def is_female(rec, condProbs, nameProbs, gendProbs, ngramLen, wholeWord):
-  name,gend = rec
-  
-  pr_f = 0
-  pr_m = 0
-  
-  for ngram in get_ngrams(name, ngramLen, wholeWord):
-    if 'F' in condProbs and ngram in condProbs['F']:
-      pr_f += math.log(condProbs['F'][ngram])
-      
-    if 'M' in condProbs and ngram in condProbs['M']:
-      pr_m = math.log(condProbs['M'][ngram])
-
-  if pr_f != 0:
-    pr_f = math.exp(pr_f + math.log(gendProbs['F']))
-  if pr_m != 0:
-    pr_m = math.exp(pr_m + math.log(gendProbs['M']))
-  
-#  print(pr_f, pr_m)
-  
-  if pr_f > pr_m:
-#    if gend=='M':
-#      print("%s should be F but marked M, with probs, M: %f, F:%f" % (name, pr_m, pr_f))
-    return 'F'
-  else:
-    return 'M'
+  return bayesProbs
+#  with open(prob_fn, 'wb') as pickleFile:
+#    pickle.dump([calcLogProbs, nameProbs], pickleFile)
   
   
 def main():
@@ -150,17 +163,14 @@ def main():
     print ("Run #%d with dataFn=%s, and outFn=%s" %(i, dataFn, outFn))
     data = flt.load_csv(dataFn)
 
-    ngramLen = 0
+    ngramLen = 2
     wholeWord = True
+    gendProbs = {'F':0.50, 'M':0.50}
     
     prob_fn = 'probabilities.pcl'
 
-    save_probs(data[1:], prob_fn, ngramLen, wholeWord)
-    condProbs, nameProbs = load_probs(prob_fn)
-
-  #  pprint(condProbs, width=1)
-  #  pprint(nameProbs, width=1)
-    gendProbs = {'F':0.52, 'M':0.48}
+    
+    bayesProbs = get_probs(data[1:], prob_fn, gendProbs, ngramLen, wholeWord)
 
 
     newCsv = open(outFn, 'w', encoding='utf-8', newline='\n')
@@ -170,8 +180,8 @@ def main():
     for row in data[1:]:
       if len(row) < 10:
         continue
-      if row[9] == 'M':
-        row[9] = is_female([row[0], row[9]], condProbs, nameProbs, gendProbs, ngramLen, wholeWord)
+      
+      row[9] = male_or_female(row[0].strip().lower(), row[9], bayesProbs)
 
       csvWriter.writerow(row)
 
