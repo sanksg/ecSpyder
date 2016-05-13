@@ -75,7 +75,7 @@ def male_or_female(name, gender, bayesProbs):
   if pr_f > pr_m:
     return "F"
   else:
-    return gender
+    return "M"
 
   
 def get_probs(data, prob_fn, gendProbs, ngramLen, wholeWord):
@@ -144,17 +144,24 @@ def main():
     origGender = row[9]
     predGender = male_or_female(name, origGender, bayesProbs)
     
+    print(name)
+    if name.strip().lower() in bayesProbs:
+      print(bayesProbs[name.strip().lower()])
+
     total+=1
     #Check if right or wrong
     if (predGender == "F"):
       fems += 1
       if origGender == "M":
         m2f +=1
+        print("M2F")
     else:
       males += 1
       #If original value was F and we marked it as M, it's an error
       if origGender == "F":
         f2m += 1
+        print("F2M")
+      
     
     #Write the predictions
     row.append(origGender)
