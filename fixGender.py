@@ -31,7 +31,7 @@ def calc_bayes_probs(dataList, condProbs, gendProbs, ngramLen, wholeWord):
     pr_f = float(1)
     pr_m = float(1)
     for ngram in probUtils.get_ngrams(name, ngramLen, wholeWord):
-            
+      print(ngram)
       if 'F' in condProbs and ngram in condProbs['F']:
         pr_f *= condProbs['F'][ngram]
 
@@ -84,7 +84,7 @@ def get_probs(data, prob_fn, gendProbs, ngramLen, wholeWord):
 
   #Calculate probabilities for F records only
   for row in data:
-    if len(row) < 10:# or row[9] == "M":
+    if len(row) < 10 or row[9] == "M":
       continue
 
     dataList.append([row[0].strip().lower(), row[9]])
@@ -102,7 +102,7 @@ def main():
   prob_fn = 'probabilities.pcl'
 
   trainTestRatio = 0.67
-  ngramLen = 0
+  ngramLen = 1
   wholeWord = True
   gendProbs = {'F':0.52, 'M':0.48}
 
@@ -140,23 +140,24 @@ def main():
     if len(row) < 10:
       continue
     
-    predGender = male_or_female(row[0], row[9], bayesProbs)
+    name = row[0]
+    origGender = row[9]
+    predGender = male_or_female(name, origGender, bayesProbs)
     
     total+=1
     #Check if right or wrong
     if (predGender == "F"):
       fems += 1
-      if row[9] == "M":
+      if origGender == "M":
         m2f +=1
     else:
-      #If original value was F and we marked it as M, it's an error
-      if row[9] == "F":
-        f2m += 1
-        
       males += 1
+      #If original value was F and we marked it as M, it's an error
+      if origGender == "F":
+        f2m += 1
     
     #Write the predictions
-    row.append(row[9])
+    row.append(origGender)
     row[9] = predGender
     csvWriter.writerow(row)
   

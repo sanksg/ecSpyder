@@ -22,11 +22,11 @@ class ProbUtils:
     if wholeWord:
       ngramList.append(name)
 
-    for n in range(1, ngramLen+1):
-      ngramList.append(name[-n:len(name)])
-      ngramList = list(set(ngramList))
+#    for n in range(1, ngramLen+1):
+    ngramList.append(name[-ngramLen:len(name)])
+    ngramList = list(set(ngramList))
 
-  #  print(ngramList)
+#    print(ngramList)
     return ngramList
 
 
